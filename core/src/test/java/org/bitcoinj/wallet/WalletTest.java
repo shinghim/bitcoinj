@@ -23,6 +23,7 @@ import junitparams.Parameters;
 import org.bitcoinj.base.BitcoinNetwork;
 import org.bitcoinj.base.ScriptType;
 import org.bitcoinj.base.internal.TimeUtils;
+import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.crypto.AesKey;
 import org.bitcoinj.base.internal.ByteUtils;
 import org.bitcoinj.core.AbstractBlockChain;
@@ -30,6 +31,7 @@ import org.bitcoinj.base.Address;
 import org.bitcoinj.core.Block;
 import org.bitcoinj.core.BlockChain;
 import org.bitcoinj.base.Coin;
+import org.bitcoinj.crypto.DeterministicHierarchy;
 import org.bitcoinj.crypto.ECKey;
 import org.bitcoinj.core.InsufficientMoneyException;
 import org.bitcoinj.base.LegacyAddress;
@@ -3530,5 +3532,65 @@ public class WalletTest extends TestWithWallet {
 
         Wallet wallet10 = Wallet.fromWatchingKeyB58(TESTNET, watchingKeyb58, Instant.ofEpochSecond(1415282801));
         assertEquals(TESTNET, wallet10.network());
+    }
+
+    @Test
+    public void createWalletFromMasterKey() {
+        HDPath accountPath = KeyChainGroupStructure.BIP43.accountPathFor(ScriptType.P2WPKH, TESTNET);
+        DeterministicKeyChain keyChain = DeterministicKeyChain.builder()
+                .random(new SecureRandom())
+                .accountPath(accountPath)
+                .build();
+        DeterministicKey key = keyChain.getWatchingKey();
+        ChildNumber childNumber = new ChildNumber(1, true);
+
+        Wallet wallet = Wallet.fromMasterKey(TESTNET, key, ScriptType.P2WPKH, childNumber);
+        assertEquals(TESTNET, wallet.network());
+        assertEquals(NetworkParameters.of(TESTNET), wallet.params);
+        assertTrue(wallet.getWatchedScripts().isEmpty());
+        assertTrue(wallet.myUnspents.isEmpty());
+        assertTrue(wallet.getPendingTransactions().isEmpty());
+        assertTrue(wallet.getTransactions(true).isEmpty());
+        assertTrue(wallet.getExtensions().isEmpty());
+    }
+
+    @Test
+    public void createWalletFromSpendingKeyB58() {
+        Wallet wallet1 = Wallet.fromSpendingKeyB58(TESTNET, "", DeterministicHierarchy.BIP32_STANDARDISATION_TIME);
+        assertEquals(TESTNET, wallet1.network());
+        assertEquals(NetworkParameters.of(TESTNET), wallet1.params);
+        assertTrue(wallet1.getWatchedScripts().isEmpty());
+        assertTrue(wallet1.myUnspents.isEmpty());
+        assertTrue(wallet1.getPendingTransactions().isEmpty());
+        assertTrue(wallet1.getTransactions(true).isEmpty());
+        assertTrue(wallet1.getExtensions().isEmpty());
+
+        Wallet wallet2 = Wallet.fromSpendingKeyB58(TESTNET, "");
+        assertEquals(TESTNET, wallet2.network());
+        assertEquals(NetworkParameters.of(TESTNET), wallet2.params);
+        assertTrue(wallet2.getWatchedScripts().isEmpty());
+        assertTrue(wallet2.myUnspents.isEmpty());
+        assertTrue(wallet2.getPendingTransactions().isEmpty());
+        assertTrue(wallet2.getTransactions(true).isEmpty());
+        assertTrue(wallet2.getExtensions().isEmpty());
+    }
+
+    @Test
+    public void createWalletFromSpendingKey() {
+        HDPath accountPath = KeyChainGroupStructure.BIP43.accountPathFor(ScriptType.P2WPKH, TESTNET);
+        DeterministicKeyChain keyChain = DeterministicKeyChain.builder()
+                .random(new SecureRandom())
+                .accountPath(accountPath)
+                .build();
+        DeterministicKey key = keyChain.getWatchingKey();
+        Wallet wallet = Wallet.fromSpendingKey(TESTNET, key, ScriptType.P2WPKH);
+
+        assertEquals(TESTNET, wallet.network());
+        assertEquals(NetworkParameters.of(TESTNET), wallet.params);
+        assertTrue(wallet.getWatchedScripts().isEmpty());
+        assertTrue(wallet.myUnspents.isEmpty());
+        assertTrue(wallet.getPendingTransactions().isEmpty());
+        assertTrue(wallet.getTransactions(true).isEmpty());
+        assertTrue(wallet.getExtensions().isEmpty());
     }
 }
